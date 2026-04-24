@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Data Extractor</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <main class="glass-panel">
+        <header>
+            <h1>Terminal <span>Pro</span></h1>
+            <p>משיכת נתונים היסטוריים מ-Yahoo Finance</p>
+        </header>
+
+        <form id="dataForm">
+            <div class="input-group">
+                <label for="tickers">סימולי מניות (Tickers)</label>
+                <input type="text" id="tickers" placeholder="לדוגמה: AAPL, TSLA, MSFT" required autocomplete="off">
+            </div>
+
+            <div class="row">
+                <div class="input-group">
+                    <label for="startDate">תאריך התחלה</label>
+                    <input type="date" id="startDate" required>
+                </div>
+                <div class="input-group">
+                    <label for="endDate">תאריך סיום</label>
+                    <input type="date" id="endDate" required>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="frequency">תדירות נתונים</label>
+                <select id="frequency">
+                    <option value="1d">יומי (Daily)</option>
+                    <option value="1wk">שבועי (Weekly)</option>
+                    <option value="1mo">חודשי (Monthly)</option>
+                </select>
+            </div>
+
+            <button type="submit" id="submitBtn">
+                <span id="btnText">הפקת גיליון נתונים</span>
+                <span class="loader" id="loader"></span>
+            </button>
+        </form>
+
+        <div id="resultContainer" class="hidden"></div>
+    </main>
+
+    <script>
+        document.getElementById('dataForm').addEventListener('submit', async (e) => {
+            e.preventDefault(); // מניעת רענון העמוד
+
+            // 1. הגדרת משתני הממשק
+            const btnText = document.getElementById('btnText');
+            const loader = document.getElementById('loader');
+            const submitBtn = document.getElementById('submitBtn');
+            const resultContainer = document.getElementById('resultContainer');
+
+            // --- חשוב! הדבק כאן את ה-URL שקיבלת מגוגל ---
+            const WEB_APP_URL = "YOUR_GOOGLE_SCRIPT_WEB_APP_URL_HERE"; 
+
+            // 2. איסוף הנתונים מהטופס
+            const rawTickers = document.getElementById('tickers').value;
+            // ניקוי רווחים והפיכה למערך
+            const tickersArray = rawTickers.split(',').map(t => t.trim().toUpperCase()).filter(t => t !== "");
+            
+            const payload = {
+                tickers: tickersArray,
+                startDate: document.getElementById('startDate').value,
+                endDate: document.getElementById('endDate').value,
+                frequency: document.getElementById('frequency').value
+            };
+
+            // 3. שינוי מצב כפתור ל"טוען"
+            submitBtn.disabled = true;
+            btnText.style.display = 'none';
+            loader.style.display = 'inline-block';
+            resultContainer.className = 'hidden';
+
+            try {
+                // 4. שליחת בקשת POST לשרת
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                // 5. הצגת התוצאה
+                resultContainer.classList.remove('hidden');
+                if (result.status === "success") {
+                    resultContainer.className = "success-msg";
+                    resultContainer.innerHTML = `
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        <p>הגיליון נוצר בהצלחה!</p>
+                        <a href="${result.sheetUrl}" target="_blank">פתח את הגיליון</a>
+                    `;
+                } else {
+                    throw new Error(result.message || "שגיאה לא ידועה בשרת");
+                }
+
+            } catch (error) {
+                // הצגת שגיאה במקרה של כישלון
+                resultContainer.classList.remove('hidden');
+                resultContainer.className = "error-msg";
+                resultContainer.innerHTML = `<p>⚠️ התרחשה שגיאה: ${error.message}</p>`;
+            } finally {
+                // החזרת הכפתור למצב רגיל
+                submitBtn.disabled = false;
+                btnText.style.display = 'inline';
+                loader.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
