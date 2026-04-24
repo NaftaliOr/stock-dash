@@ -61,16 +61,28 @@
             const resultContainer = document.getElementById('resultContainer');
 
             // --- חשוב! הדבק כאן את ה-URL שקיבלת מגוגל ---
-            const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxhNxAogdXqw0JN6Pj4zub_CV_4gYVxS-xy4P3oNGBTx3HRnOSbmPrLXk7ZMpstiWc-1A/exec"
+            const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzRNPi0FDSifFs-daUG0wrriVnFrlvrOOiF5pIMRHtEdTkErYOeGkFTH8kBpv2k12ICRw/exec"
+            
             // 2. איסוף הנתונים מהטופס
             const rawTickers = document.getElementById('tickers').value;
+            const startDateValue = document.getElementById('startDate').value;
+            const endDateValue = document.getElementById('endDate').value;
+            
+            // --- הוספת לוגיקת ולידציה לתאריכים ---
+            if (new Date(startDateValue) > new Date(endDateValue)) {
+                resultContainer.classList.remove('hidden');
+                resultContainer.className = "error-msg";
+                resultContainer.innerHTML = `<p>⚠️ שגיאה: תאריך ההתחלה לא יכול להיות מאוחר מתאריך הסיום.</p>`;
+                return; // עוצר את המשך הפעולה (לא שולח לשרת)
+            }
+
             // ניקוי רווחים והפיכה למערך
             const tickersArray = rawTickers.split(',').map(t => t.trim().toUpperCase()).filter(t => t !== "");
             
             const payload = {
                 tickers: tickersArray,
-                startDate: document.getElementById('startDate').value,
-                endDate: document.getElementById('endDate').value,
+                startDate: startDateValue,
+                endDate: endDateValue,
                 frequency: document.getElementById('frequency').value
             };
 
